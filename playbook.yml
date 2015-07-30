@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    - rabbitmq_user: rabbitmq
+    - commands:
+        status: rabbitmq_status.txt
+        cluster_status: rabbitmq_cluster_status.txt
+        eval 'rabbit_federation_status:status().': rabbitmq_federation_status.txt
+        report: rabbitmq_report.txt
+        list_policies: rabbitmq_policies.txt
+  tasks:
+    - shell: "/usr/lib/rabbitmq/bin/rabbitmqctl {{ item.key }} > /tmp/{{ item.value }}"
+      sudo: true
+      sudo_user: "{{rabbitmq_user}}"
+      with_dict: commands
+    - name: Fetch collected command results
+      fetch: src="/tmp/{{ item.value }}" dest=logs
+      with_dict: commands
+    - synchronize: mode=pull src=/var/log/rabbitmq/ dest="logs/{{inventory_hostname}}/rabbitmq_logs" recursive=yes
